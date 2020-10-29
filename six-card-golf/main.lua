@@ -23,7 +23,6 @@ function love.load()
         -- add regular cards rank to the score
 
         return score
-
     end
 
     function roundOver()
@@ -66,7 +65,6 @@ function love.load()
         end
 
         takeCard(discardPile)
-
     end
 
     function resetGame()
@@ -79,40 +77,37 @@ function love.load()
     resetRound()
 end
 
+function drawPlayer(pOutput, pBoard, isOpponent)
+    name = "YOU"
+    if isOpponent then
+        name = "OPPONENT"
+    end
+
+    table.insert( pOutput, name)
+    table.insert( pOutput, 'Score: ' .. getScore(pBoard) )
+    table.insert( pOutput, '')
+    for cardIndex,card in ipairs(pBoard) do
+        if (card.flipped) then
+            table.insert( pOutput, cardIndex.. ' - ' ..printCard(card))
+        else
+            table.insert( pOutput, cardIndex.. ' - ' ..'S: ?, R: ?')
+        end
+
+    end
+    table.insert( pOutput, '' )
+end
+
 function love.draw()
 
     local output = {}
 
-    table.insert( output, 'OPPONENT')
-
-    table.insert( output, 'Score: ' .. getScore(npcBoard) )
-    table.insert( output, '')
-    for cardIndex,card in ipairs(npcBoard) do
-        if (card.flipped) then
-            table.insert( output,'suit: '..card.suit..', rank: '..card.rank)
-        else
-            table.insert( output,'suit: ?, rank: ?')
-        end
-
-    end
-    table.insert( output, '' ) 
+    drawPlayer(output, npcBoard, true)
 
     table.insert( output, 'Discard Pile: '..printCard(discardPile[#discardPile]) )
     table.insert( output, 'Deck:' )
-
     table.insert( output, '' )
 
-    table.insert( output, 'YOU' )
-    table.insert( output, 'Score: ' .. getScore(playerBoard) )
-    table.insert( output, '')
-    for cardIndex,card in ipairs(playerBoard) do
-        if (card.flipped) then
-            table.insert( output,cardIndex.. ' - '.. printCard(card))
-        else
-            table.insert( output,cardIndex.. ' - S: ?, R: ?')
-        end
-    end
-    table.insert( output, '' ) 
+    drawPlayer(output, playerBoard, false)
 
     table.insert( output, 'Holding card: '.. printCard(drawCard[#drawCard]))
     table.insert( output, '')
@@ -130,8 +125,10 @@ function love.keypressed(key)
         if playerTurn then
             print("Keep on playing")
             handlePlayerInput(key)
-        else 
-            -- CPU play the turn, then playerTurn switch again
+        end
+
+        if not playerTurn then
+            print("CPU turn")
         end
     else
         roundOver()
@@ -192,7 +189,7 @@ function handlePlayerInput(pKey)
                 table.insert( discardPile , table.remove(playerBoard,numberKey))
                 table.insert( playerBoard, numberKey, table.remove(drawCard,#drawCard) )
                 playerBoard[numberKey].flipped = true
-                round_step = ROUND_STEP_ENUM.BASE -- temp to loop
+                playerTurn = false
             else -- Selecting a card to flip
                 if (playerBoard[numberKey].flipped) then
                     actionMessage = "Already flipped, select another card"
@@ -200,7 +197,7 @@ function handlePlayerInput(pKey)
                     actionMessage = "Flipped card no. "..numberKey
                     playerBoard[numberKey].flipped = true
                     -- check if all cards are flipped
-                round_step = ROUND_STEP_ENUM.BASE -- temp to loop
+                    playerTurn = false
                 end
             end
         end
@@ -210,7 +207,7 @@ function handlePlayerInput(pKey)
         if pKey == 'd' then
             actionMessage = "Discarded holded card"
             table.insert( discardPile , table.remove(drawCard,#drawCard))
-            round_step = ROUND_STEP_ENUM.BASE -- temp to loop
+            playerTurn = false
         elseif pKey == 'r' then
             actionMessage = "Replace one of your card using 1 to 6 on your keyboard"
             round_step = ROUND_STEP_ENUM.PICK
