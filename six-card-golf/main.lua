@@ -10,11 +10,14 @@ function love.load()
         HOLD=4,
     }
 
+    playerScore = {}
+    cpuScore = {}
+
     function takeCard(hand)
         table.insert( hand, table.remove( deck, love.math.random(#deck) ) )
     end
 
-    -- Calculate the score for a player hand
+    -- TODO: Calculate the score for a player hand TODO:
     function getScore(board)
         local score = 0
 
@@ -34,7 +37,6 @@ function love.load()
         resetRound()
     end
 
-    -- Will reset the 2 players board and reprepare the deck
     function resetRound()
         playerTurn = true
         roundOver = false
@@ -44,10 +46,9 @@ function love.load()
         playerBoard = {} 
         npcBoard = {}
 
-        discardPile = {} -- Need to become the deck once it has been emptied
-        drawCard = {} -- Array to hold the current card (maximum 1 at the time)
+        discardPile = {} -- TODO: Need to become the deck once it has been emptied
+        drawCard = {}
 
-        -- filling the deck with regular cards + 2 jokers
         deck = {}
         for suitIndex, suit in ipairs({'heart', 'spade', 'club', 'diamond'}) do
             for rank = 1, 13 do
@@ -58,7 +59,6 @@ function love.load()
         table.insert( deck, { suit = 'joker', rank = 0, flipped = false} )
         table.insert( deck, { suit = 'joker', rank = 1, flipped = false} )
 
-        -- Distribute 6 cards for
         for i=1,6 do
             takeCard(playerBoard)
             takeCard(npcBoard)
@@ -100,6 +100,7 @@ end
 function love.draw()
 
     local output = {}
+    local scoreBoard = {}
 
     drawPlayer(output, npcBoard, true)
 
@@ -117,6 +118,21 @@ function love.draw()
     table.insert( output, actionMessage ) 
 
     love.graphics.print(table.concat( output, '\n' ))
+
+    drawScoreBoard(scoreBoard, playerScore, cpuScore)
+
+    love.graphics.print(table.concat( scoreBoard, '\n' ),200)
+end
+
+function drawScoreBoard(pOutput, player, cpu) 
+    table.insert( pOutput, '  Score')
+    for i=1,9 do
+        if (player[i] ~= nil) then
+            table.insert( pOutput, ' '..player[i]..' | '..cpu[i]..' ')
+        else 
+            table.insert( pOutput, '     |     ')
+        end
+    end
 end
 
 function love.keypressed(key)
@@ -133,6 +149,10 @@ function love.keypressed(key)
     else
         roundOver()
     end
+end
+
+function isRoundOver(player1, player2) 
+    -- TODO: Check if one of the player have 6 cards turned, then toggle the roundOver
 end
 
 function hasValue (tab, val)
