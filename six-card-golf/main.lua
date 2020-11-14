@@ -1,3 +1,5 @@
+helpers = require("helpers")
+
 function love.load()
 
     local MAX_ROUNDS = 9
@@ -17,22 +19,11 @@ function love.load()
         table.insert( hand, table.remove( deck, love.math.random(#deck) ) )
     end
 
-    -- TODO: Calculate the score for a player hand TODO:
-    function getScore(board)
-        local score = 0
-
-        -- "pop" jokers (-5) and kings (0) and add to the score
-        -- Remove any card that is there more than once
-        -- add regular cards rank to the score
-
-        return score
-    end
-
     function roundOver()
         currentRound = currentRound + 1
 
-        table.insert( playerScore, getScore(playerBoard) )
-        table.insert( playerScore, getScore(npcBoard) )
+        table.insert( playerScore, helpers.getScore(playerBoard) )
+        table.insert( playerScore, helpers.getScore(npcBoard) )
 
         resetRound()
     end
@@ -84,7 +75,7 @@ function drawPlayer(pOutput, pBoard, isOpponent)
     end
 
     table.insert( pOutput, name)
-    table.insert( pOutput, 'Score: ' .. getScore(pBoard) )
+    table.insert( pOutput, 'Score: ' .. helpers.getScore(pBoard) )
     table.insert( pOutput, '')
     for cardIndex,card in ipairs(pBoard) do
         if (card.flipped) then
@@ -155,19 +146,6 @@ function isRoundOver(player1, player2)
     -- TODO: Check if one of the player have 6 cards turned, then toggle the roundOver
 end
 
-function hasValue (tab, val)
-    print("Check with "..val)
-    for index, value in ipairs(tab) do
-        print("index: ".. index .. " value: "..value .." check with: ".. val)
-        print(value == val)
-        if value == val then
-            return true
-        end
-    end
-
-    return false
-end
-
 function printCard(pCard)
     if (pCard ~= nil) then
         return 'S: '..pCard.suit..', R: '..pCard.rank
@@ -188,7 +166,7 @@ function handlePlayerInput(pKey)
         end
     elseif round_step == ROUND_STEP_ENUM.DRAW then
 
-        if hasValue({'d','p'},pKey) then 
+        if helpers.hasValue({'d','p'},pKey) then 
             actionMessage = "Press D to discard it or R to replace a card from your board"
 
             if pKey == 'd' then
@@ -202,7 +180,7 @@ function handlePlayerInput(pKey)
     elseif round_step == ROUND_STEP_ENUM.PICK then
         numberKey = tonumber(pKey)
 
-        if numberKey ~= nil and hasValue({1,2,3,4,5,6},numberKey) then
+        if numberKey ~= nil and helpers.hasValue({1,2,3,4,5,6},numberKey) then
             if #drawCard > 0 then -- Selecting a card to replace
                 -- remove card from the table and replace by the one holded
                 actionMessage = "Replacing card on position: ".. numberKey .. " by holded card"
