@@ -29,7 +29,6 @@ end
 
 function helpers.hasValue (tab, val)
     for index, value in ipairs(tab) do
-        print(value == val)
         if value == val then
             return true
         end
@@ -38,12 +37,11 @@ function helpers.hasValue (tab, val)
     return false
 end
 
--- Will return the index of the card that should be replaced, OR -1 if nothing should be replaced
-function helpers.defineBestAction(board, pile) 
+-- Will return the index of the card that should be replaced, OR -1 if nothing should be replaced. Gap is to prevent it from always changing card to gain 1 point
+-- TODO: If the pile card is a king or joker, could it be "worth" to discard a flipped card?
+function helpers.defineBestAction(board, pile, gap) 
     bestIndex = -1
-    bestScore = helpers.getScore(board)
-
-    print("Best Score ".. bestScore)
+    bestScore = helpers.getScore(board) - gap
 
     for index,value in ipairs(board) do
         tempBoard = table.clone(board)
@@ -62,7 +60,7 @@ function helpers.defineBestAction(board, pile)
 end
 
 function table.clone(org)
-    return {table.unpack(org)}
+    return {unpack(org)} -- use table.unpack when running tests.
 end
 
 return helpers

@@ -1,6 +1,7 @@
 helpers = require("helpers")
 
 function love.load()
+    -- love.window.setMode(400,240)
 
     local MAX_ROUNDS = 9
     actionMessage = '...'
@@ -48,7 +49,7 @@ function love.load()
         end
 
         table.insert( deck, { suit = 'joker', rank = 0, flipped = false} )
-        table.insert( deck, { suit = 'joker', rank = 1, flipped = false} )
+        table.insert( deck, { suit = 'joker', rank = 0, flipped = false} )
 
         for i=1,6 do
             takeCard(playerBoard)
@@ -56,6 +57,7 @@ function love.load()
         end
 
         takeCard(discardPile)
+        discardPile[#discardPile].flipped = true
     end
 
     function resetGame()
@@ -136,10 +138,49 @@ function love.keypressed(key)
 
         if not playerTurn then
             print("CPU turn")
+            handleCPUTurn()
         end
     else
         roundOver()
     end
+end
+
+function handleCPUTurn() 
+
+    -- Gathering information
+    nonFlippedCardsIndexes = nonFlippedCards(npcBoard)  
+    topDiscardPile = discardPile[#discardPile]
+    optimalIndex = helpers.defineBestAction(npcBoard ,topDiscardPile, #nonFlippedCardsIndexes) 
+
+    if (#nonFlippedCardsIndexes > 1 ) then
+        if (optimalIndex ~= -1) then
+            indexToFlip = optimalIndex
+
+            table.insert( drawCard, table.remove(discardPile,#discardPile))
+            table.insert( discardPile , table.remove(npcBoard,indexToFlip))
+            table.insert( npcBoard, indexToFlip, table.remove(drawCard,#drawCard) )
+        else
+            indexToFlip = nonFlippedCardsIndexes[love.math.random(#nonFlippedCardsIndexes)]
+        end
+        npcBoard[indexToFlip].flipped = true
+    else
+        -- Final step, optimise score. Should also be reached if cpu is in final turn (player turned all cards)
+        print("Final card, if score is worst than opponent, it should draw until it can beat it.")
+    end
+
+
+    playerTurn = true
+end
+
+function nonFlippedCards(board) 
+    count = {}
+    for key, card in ipairs(board) do
+        if (not card.flipped) then
+            table.insert( count, key )
+        end
+    end
+
+    return count
 end
 
 function isRoundOver(player1, player2) 
@@ -181,10 +222,11 @@ function handlePlayerInput(pKey)
         numberKey = tonumber(pKey)
 
         if numberKey ~= nil and helpers.hasValue({1,2,3,4,5,6},numberKey) then
-            if #drawCard > 0 then -- Selecting a card to replace
+            if #drawCard > 0 then
                 -- remove card from the table and replace by the one holded
                 actionMessage = "Replacing card on position: ".. numberKey .. " by holded card"
                 table.insert( discardPile , table.remove(playerBoard,numberKey))
+                discardPile[#discardPile].flipped = true
                 table.insert( playerBoard, numberKey, table.remove(drawCard,#drawCard) )
                 playerBoard[numberKey].flipped = true
                 playerTurn = false
@@ -205,6 +247,7 @@ function handlePlayerInput(pKey)
         if pKey == 'd' then
             actionMessage = "Discarded holded card"
             table.insert( discardPile , table.remove(drawCard,#drawCard))
+            discardPile[#discardPile].flipped = true
             playerTurn = false
         elseif pKey == 'r' then
             actionMessage = "Replace one of your card using 1 to 6 on your keyboard"
