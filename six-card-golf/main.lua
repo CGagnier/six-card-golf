@@ -13,23 +13,21 @@ function love.load()
         HOLD=4,
     }
 
-    playerScore = {}
-    cpuScore = {}
-
     function takeCard(hand)
         table.insert( hand, table.remove( deck, love.math.random(#deck) ) )
     end
 
-    function roundOver()
+    function roundIsOver()
         currentRound = currentRound + 1
 
         table.insert( playerScore, helpers.getScore(playerBoard) )
-        table.insert( playerScore, helpers.getScore(npcBoard) )
+        table.insert( cpuScore, helpers.getScore(npcBoard) )
 
         resetRound()
     end
 
     function resetRound()
+        print("Round was reset")
         playerTurn = true
         roundOver = false
 
@@ -65,9 +63,12 @@ function love.load()
 
         playerScore = {}
         cpuScore = {}
+
+        resetRound()
     end
 
-    resetRound()
+    resetGame()
+
 end
 
 function drawPlayer(pOutput, pBoard, isOpponent)
@@ -120,28 +121,31 @@ end
 function drawScoreBoard(pOutput, player, cpu) 
     table.insert( pOutput, '  Score')
     for i=1,9 do
-        if (player[i] ~= nil) then
-            table.insert( pOutput, ' '..player[i]..' | '..cpu[i]..' ')
-        else 
-            table.insert( pOutput, '     |     ')
-        end
+        playerS = player[i] or "   "
+        cpuS = cpu[i] or "   "
+
+        table.insert( pOutput, ' '..playerS..' | '..cpuS..' ')
     end
 end
 
 function love.keypressed(key)
 
-    if not roundOver then
-        if playerTurn then
-            print("Keep on playing")
-            handlePlayerInput(key)
-        end
+    roundOver = isRoundOver(npcBoard) -- did opponent finish his turn
+    if playerTurn then
+        print("Keep on playing")
+        handlePlayerInput(key)
+        roundOver = isRoundOver(playerBoard) -- if player flipped all cards then opponent will need to play their final turn
+    end
 
-        if not playerTurn then
-            print("CPU turn")
-            handleCPUTurn()
-        end
-    else
-        roundOver()
+    if not playerTurn then
+        actionMessage = "..."
+        print("CPU turn")
+        handleCPUTurn()
+    end
+
+    if roundOver then 
+        print("Round is over")
+        roundIsOver()
     end
 end
 
@@ -152,7 +156,7 @@ function handleCPUTurn()
     topDiscardPile = discardPile[#discardPile]
     optimalIndex = helpers.defineBestAction(npcBoard ,topDiscardPile, #nonFlippedCardsIndexes) 
 
-    if (#nonFlippedCardsIndexes > 1 ) then
+    if (#nonFlippedCardsIndexes > 1 or true) then
         if (optimalIndex ~= -1) then
             indexToFlip = optimalIndex
 
@@ -183,8 +187,15 @@ function nonFlippedCards(board)
     return count
 end
 
-function isRoundOver(player1, player2) 
-    -- TODO: Check if one of the player have 6 cards turned, then toggle the roundOver
+function isRoundOver(pBoard) 
+    for i,v in ipairs(pBoard) do
+        if (not v.flipped) then
+            return false
+        end
+    end
+
+    actionMessage = "Final round"
+    return true
 end
 
 function printCard(pCard)
@@ -230,14 +241,15 @@ function handlePlayerInput(pKey)
                 table.insert( playerBoard, numberKey, table.remove(drawCard,#drawCard) )
                 playerBoard[numberKey].flipped = true
                 playerTurn = false
+                round_step = ROUND_STEP_ENUM.BASE
             else -- Selecting a card to flip
                 if (playerBoard[numberKey].flipped) then
                     actionMessage = "Already flipped, select another card"
                 else
                     actionMessage = "Flipped card no. "..numberKey
                     playerBoard[numberKey].flipped = true
-                    -- check if all cards are flipped
                     playerTurn = false
+                    round_step = ROUND_STEP_ENUM.BASE
                 end
             end
         end
@@ -249,6 +261,7 @@ function handlePlayerInput(pKey)
             table.insert( discardPile , table.remove(drawCard,#drawCard))
             discardPile[#discardPile].flipped = true
             playerTurn = false
+            round_step = ROUND_STEP_ENUM.BASE
         elseif pKey == 'r' then
             actionMessage = "Replace one of your card using 1 to 6 on your keyboard"
             round_step = ROUND_STEP_ENUM.PICK
