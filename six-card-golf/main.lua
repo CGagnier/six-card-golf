@@ -1,17 +1,32 @@
 helpers = require("helpers")
 
 function love.load()
-    -- love.window.setMode(400,240)
 
-    local MAX_ROUNDS = 2
+    local MAX_ROUNDS = 9
+    SCALE = 0.5
     actionMessage = '...'
-
     ROUND_STEP_ENUM = {
         BASE=1,
         DRAW=2,
         PICK=3,
         HOLD=4,
     }
+    BLACK = {.196,.184,.16,1}
+    WHITE = {.694,.682,.659,1}
+
+    love.window.setMode(800 * SCALE,480 * SCALE)
+
+    images = {}
+    for i, name in ipairs({
+        'card', 'card_face_down',
+    }) do 
+        images[name] = love.graphics.newImage('images/'..name..'.png')
+    end
+
+    cardWidth = images.card_face_down:getWidth()
+    cardHeight = images.card_face_down:getHeight()
+
+    love.graphics.setBackgroundColor(WHITE)
 
     function takeCard(hand)
         table.insert( hand, table.remove( deck, love.math.random(#deck) ) )
@@ -122,6 +137,8 @@ function love.draw()
     local output = {}
     local scoreBoard = {}
 
+    -- Text display
+
     drawPlayer(output, npcBoard, true)
 
     table.insert( output, 'Discard Pile: '..printCard(discardPile[#discardPile]) )
@@ -141,8 +158,44 @@ function love.draw()
 
     drawScoreBoard(scoreBoard, playerScore, cpuScore)
 
-    love.graphics.print(table.concat( scoreBoard, '\n' ),200)
+    -- love.graphics.print(table.concat( scoreBoard, '\n' ),200)
 
+    -- Images display
+
+    local function drawCard(card, x, y)
+        love.graphics.setColor(BLACK)
+
+        if not card.flipped then
+            love.graphics.draw(images.card_face_down, x,y,0, SCALE,SCALE)
+        else
+            love.graphics.draw(images.card, x,y,0, SCALE,SCALE)
+        end
+    end
+
+    local cardSpacingX = (8 + cardWidth) * SCALE
+    local cardSpacingY = (4 + cardHeight) * SCALE
+    local marginY = 43.5 * SCALE
+
+    for i, card in ipairs(playerBoard) do 
+        local playerMarginX = 29.5 * SCALE 
+
+        drawCard(
+            card,
+            ((i%2) * cardSpacingX) + playerMarginX,
+            ((i%3) * cardSpacingY) + marginY)
+    end
+
+    for i, card in ipairs(npcBoard) do 
+        local cpuMarginX = 582.5 * SCALE 
+
+        drawCard(
+            card,
+            ((i%2) * cardSpacingX) + cpuMarginX,
+            ((i%3) * cardSpacingY) + marginY)
+    end
+
+
+    -- END game logic  
     if gameOver then
         -- draw menu with the winner, play again or quit
         totPlayerScore = sum(playerScore)
