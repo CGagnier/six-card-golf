@@ -3,7 +3,7 @@ helpers = require("helpers")
 function love.load()
     -- love.window.setMode(400,240)
 
-    local MAX_ROUNDS = 9
+    local MAX_ROUNDS = 2
     actionMessage = '...'
 
     ROUND_STEP_ENUM = {
@@ -18,6 +18,12 @@ function love.load()
     end
 
     function roundIsOver()
+        for i=1,6 do
+            print(i)
+            playerBoard[i].flipped = true
+            npcBoard[i].flipped = true 
+        end
+
         currentRound = currentRound + 1
 
         table.insert( playerScore, helpers.getScore(playerBoard) )
@@ -25,13 +31,26 @@ function love.load()
 
         if (currentRound >= MAX_ROUNDS) then
             gameOver = true
+
+            totPlayerScore = sum(playerScore)
+            totCpuScore = sum(cpuScore)
+
+            if totPlayerScore < totCpuScore then
+                actionMessage = "You won!"
+            elseif totPlayerScore > totCpuScore then
+                actionMessage = "CPU won!"
+            else
+                actionMessage = "It's a tie!"
+            end
+
+            actionMessage = actionMessage .. " Press escape to quit or any key to start again"
+
         else
             resetRound()
         end
     end
 
     function resetRound()
-        print("Round was reset")
         playerTurn = true
         roundOver = false
 
@@ -60,6 +79,8 @@ function love.load()
 
         takeCard(discardPile)
         discardPile[#discardPile].flipped = true
+
+        actionMessage = '...'
     end
 
     function resetGame()
@@ -144,35 +165,23 @@ end
 function love.keypressed(key)
 
     if not gameOver then
-        roundOver = isRoundOver(npcBoard) -- did opponent finish his turn
+
         if playerTurn then
             handlePlayerInput(key)
-            roundOver = isRoundOver(playerBoard) -- if player flipped all cards then opponent will need to play their final turn
         end
 
-        if not playerTurn then
-            actionMessage = "..."
+        if not (playerTurn or roundOver) then
+            roundOver = isRoundOver(playerBoard)
             handleCPUTurn()
-
         end
 
         if roundOver then 
             roundIsOver()
         end
 
-        if gameOver then
-            totPlayerScore = sum(playerScore)
-            totCpuScore = sum(cpuScore)
-
-            if totPlayerScore < totCpuScore then
-                actionMessage = "You won!"
-            elseif totPlayerScore > totCpuScore then
-                actionMessage = "CPU won!"
-            else
-                actionMessage = "It's a tie!"
-            end
-
-            actionMessage = actionMessage .. " Press escape to quit or any key to start again"
+        roundOver = isRoundOver(npcBoard)
+        if roundOver then
+            actionMessage = "CPU finished, this is your final turn"
         end
     else
         handleMenuPlayerInput(key)
@@ -203,19 +212,50 @@ function handleCPUTurn()
     topDiscardPile = discardPile[#discardPile]
     optimalIndex = helpers.defineBestAction(npcBoard ,topDiscardPile, #nonFlippedCardsIndexes) 
 
+    if (#nonFlippedCardsIndexes <= 1 or roundOver) then
 
-    if (optimalIndex ~= -1) then
-        indexToFlip = optimalIndex
+        opponentScore = helpers.getScore(playerBoard)
+        ownScore = helpers.getScore(npcBoard)
 
-        table.insert( drawCard, table.remove(discardPile,#discardPile))
-        table.insert( discardPile , table.remove(npcBoard,indexToFlip))
-        table.insert( npcBoard, indexToFlip, table.remove(drawCard,#drawCard) )
+        if (optimalIndex == -1) then -- The discard pile isn't good
+            takeCard(drawCard)
+            potentialIndex = helpers.defineBestAction(npcBoard ,drawCard[#drawCard], 0)
+            indexToFlip = potentialIndex
+        else
+            table.insert( drawCard, table.remove(discardPile,#discardPile))
+            indexToFlip = optimalIndex
+        end
+
+        if (indexToFlip == -1) then
+            -- We have nothing good to flip, should discard draw card and end turn
+            if roundOver then 
+                -- Better flip a card than nothing      
+                indexToFlip = nonFlippedCardsIndexes[love.math.random(#nonFlippedCardsIndexes)]        
+                npcBoard[indexToFlip].flipped = true 
+            else
+                -- discard cards
+                table.insert( discardPile , table.remove(drawCard,#drawCard))
+            end
+        else
+            -- We have something good to flip
+            table.insert( discardPile , table.remove(npcBoard,indexToFlip))
+            table.insert( npcBoard, indexToFlip, table.remove(drawCard,#drawCard) )
+            npcBoard[indexToFlip].flipped = true 
+        end
+
     else
-        indexToFlip = nonFlippedCardsIndexes[love.math.random(#nonFlippedCardsIndexes)]
-    end
-    npcBoard[indexToFlip].flipped = true
+        if (optimalIndex ~= -1) then
+            indexToFlip = optimalIndex
+
+            table.insert( drawCard, table.remove(discardPile,#discardPile))
+            table.insert( discardPile , table.remove(npcBoard,indexToFlip))
+            table.insert( npcBoard, indexToFlip, table.remove(drawCard,#drawCard) )
+        else
+            indexToFlip = nonFlippedCardsIndexes[love.math.random(#nonFlippedCardsIndexes)]
+        end
+        npcBoard[indexToFlip].flipped = true
        
-    
+    end
     
     playerTurn = true
 end

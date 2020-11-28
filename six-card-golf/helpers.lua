@@ -1,6 +1,6 @@
 local helpers = {}
 
-function helpers.getScore(board)
+function helpers.getScore(board, unflippedCardValue)
     local score = 0
     local normalCard = {}
 
@@ -13,6 +13,8 @@ function helpers.getScore(board)
             elseif card.rank ~= 13 then
                 table.insert(normalCard, card.rank )          
             end
+        else 
+            score = score + (unflippedCardValue or 0)
         end
     end
 
@@ -38,18 +40,18 @@ function helpers.hasValue (tab, val)
 end
 
 -- Will return the index of the card that should be replaced, OR -1 if nothing should be replaced. Gap is to prevent it from always changing card to gain 1 point
--- TODO: If the pile card is a king or joker, could it be "worth" to discard a flipped card?
 function helpers.defineBestAction(board, pile, gap) 
     bestIndex = -1
-    bestScore = helpers.getScore(board) - gap
+    FLIPPED_VALUE = 6 -- 6 is approx the average or the sum of a new deck, could changed based on passed cards
+    
+    bestScore = helpers.getScore(board, FLIPPED_VALUE) - gap 
 
     for index,value in ipairs(board) do
         tempBoard = table.clone(board)
         table.remove( tempBoard, index)
         table.insert( tempBoard, pile)
         
-        tempScore = helpers.getScore(tempBoard)
-        print("Current temp Score ".. tempScore.. " with index "..index)
+        tempScore = helpers.getScore(tempBoard, FLIPPED_VALUE)
         if (tempScore < bestScore) then
             bestScore = tempScore
             bestIndex = index
