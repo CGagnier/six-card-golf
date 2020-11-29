@@ -36,6 +36,7 @@ function love.load()
 
     images = {}
     for i, name in ipairs({
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
         'card', 'card_face_down','card_filled', 
         'title', 'title_filled', 'message', 'message_filled', "hand", "hand_filled"
     }) do 
@@ -208,6 +209,24 @@ function love.draw()
     end
 
     local function drawCard(card, x, y,scale)
+
+        local function drawCorner(image, offsetX, offsetY)
+            love.graphics.draw(
+                image,
+                x + offsetX,
+                y + offsetY,
+                0,
+                SCALE,
+                SCALE
+            )
+            love.graphics.draw(
+                image, 
+                x + (cardWidth * SCALE) - offsetX,
+                y + (cardHeight * SCALE) - offsetY,
+                0,
+                -1 * SCALE)
+        end
+
         local scaling = scale or 1
 
         if card then
@@ -215,6 +234,7 @@ function love.draw()
                 drawFilledImages(images.card_face_down, images.card_filled, x, y, scaling * SCALE)   
             else
                 drawFilledImages(images.card, images.card_filled, x, y, scaling * SCALE)
+                drawCorner(images[card.rank],8 * SCALE ,8 * SCALE)
             end
         end
     end
@@ -252,8 +272,8 @@ function love.draw()
         end
     end
 
-    drawCardBoard(playerBoard, 29 * SCALE)
-    drawCardBoard(npcBoard, 582 * SCALE)
+    drawCardBoard(playerBoard, 29)
+    drawCardBoard(npcBoard, 582)
 
     -- Score drawing
     local scoreMarginX = 224
