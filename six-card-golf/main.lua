@@ -4,7 +4,6 @@ function love.load()
 
     local MAX_ROUNDS = 9
     SCALE = 0.5
-    actionMessage = '...'
     ROUND_STEP_ENUM = {
         BASE=1,
         DRAW=2,
@@ -17,13 +16,16 @@ function love.load()
     SCREEN_WIDTH = 800 
     SCREEN_HEIGHT = 480
 
+    actionMessage = '...'
+    selected_index = -1
+
     love.window.setMode(SCREEN_WIDTH * SCALE,SCREEN_HEIGHT * SCALE)
     love.graphics.setFont(love.graphics.newFont(FONT_SIZE * SCALE))
 
     images = {}
     for i, name in ipairs({
         'card', 'card_face_down','card_filled', 
-        'title', 'title_filled', 'message', 'message_filled'
+        'title', 'title_filled', 'message', 'message_filled', "hand", "hand_filled"
     }) do 
         images[name] = love.graphics.newImage('images/'..name..'.png')
     end
@@ -39,7 +41,6 @@ function love.load()
 
     function roundIsOver()
         for i=1,6 do
-            print(i)
             playerBoard[i].flipped = true
             npcBoard[i].flipped = true 
         end
@@ -52,8 +53,8 @@ function love.load()
         if (currentRound >= MAX_ROUNDS) then
             gameOver = true
 
-            totPlayerScore = sum(playerScore)
-            totCpuScore = sum(cpuScore)
+            totPlayerScore = helpers.sum(playerScore)
+            totCpuScore = helpers.sum(cpuScore)
 
             if totPlayerScore < totCpuScore then
                 actionMessage = "You won!"
@@ -178,30 +179,30 @@ function love.draw()
     love.graphics.setColor(BLACK)
     love.graphics.draw(images.title, 252 * SCALE, 0, 0, SCALE, SCALE)
 
+    local function drawFilledImages(normal, filled, x, y, scale)
+        love.graphics.setColor(WHITE)    
+        love.graphics.draw(filled, x, y, 0, scale, scale)
+        love.graphics.setColor(BLACK)
+        love.graphics.draw(normal, x, y, 0, scale, scale)
+    end
+
     local function drawMessage(text)
         -- TODO: Use getWrap to know if the text is overflowing
-        messageX = 236
-        messageY = SCREEN_HEIGHT - 86
-        love.graphics.setColor(WHITE)    
-        love.graphics.draw(images.message_filled, messageX * SCALE, messageY * SCALE, 0, SCALE, SCALE)
-        love.graphics.setColor(BLACK)
-        love.graphics.draw(images.message, messageX * SCALE, messageY * SCALE, 0, SCALE, SCALE)
+        messageX = 236 * SCALE
+        messageY = (SCREEN_HEIGHT - 86) * SCALE
+
+        drawFilledImages(images.message, images.message_filled, messageX, messageY, SCALE)
         love.graphics.printf(text,(messageX + 15) * SCALE, (messageY + 10) * SCALE,310 * SCALE, "left")
     end
 
     local function drawCard(card, x, y,scale)
         local scaling = scale or 1
-        love.graphics.setColor(BLACK)
 
         if card then
-            love.graphics.setColor(WHITE)
-            love.graphics.draw(images.card_filled, x,y,0,scaling * SCALE,scaling * SCALE)
-
-            love.graphics.setColor(BLACK)
-            if not card.flipped then     
-                love.graphics.draw(images.card_face_down, x,y,0,scaling * SCALE,scaling * SCALE)
+            if not card.flipped then  
+                drawFilledImages(images.card_face_down, images.card_filled, x, y, scaling * SCALE)   
             else
-                love.graphics.draw(images.card, x,y,0,scaling * SCALE,scaling * SCALE)
+                drawFilledImages(images.card, images.card_filled, x, y, scaling * SCALE)
             end
         end
     end
@@ -265,8 +266,6 @@ function love.draw()
         middleMarginY)
 
     if (drawnCard[#drawnCard]) then
-        print(drawnCard[#drawnCard])
-        print(drawnCard[#drawnCard].flipped)
         drawCard(
             drawnCard[#drawnCard],
             331.66 * SCALE,
@@ -274,13 +273,19 @@ function love.draw()
             1.61)
     end
 
+    -- Hand Selector 
+    handX = 160 * SCALE
+    handY = 350 * SCALE
+
+    drawFilledImages(images.hand, images.hand_filled, handX, handY, SCALE)
+
     drawMessage("Lorem ipsum dolor sit amet, consectetur adipiscing elit")
 
     -- END game logic  
     if gameOver then
         -- draw menu with the winner, play again or quit
-        totPlayerScore = sum(playerScore)
-        totCpuScore = sum(cpuScore)
+        totPlayerScore = helpers.sum(playerScore)
+        totCpuScore = helpers.sum(cpuScore)
         love.graphics.print("Total: "..totPlayerScore.. " | ".. totCpuScore,175,160)
     end
 end
@@ -297,6 +302,8 @@ function drawScoreBoard(pOutput, player, cpu)
 end
 
 function love.keypressed(key)
+
+    handleArrowSelection(key)
 
     if not gameOver then
 
@@ -328,15 +335,6 @@ function handleMenuPlayerInput(key)
     else
         resetGame()
     end
-end
-
-function sum(pScoreArray)
-    total = 0
-    for i,v in ipairs(pScoreArray) do
-        total = total + v
-    end
-    
-    return total
 end
 
 function handleCPUTurn() 
@@ -484,5 +482,11 @@ function handlePlayerInput(pKey)
             actionMessage = "Replace one of your card using 1 to 6 on your keyboard"
             round_step = ROUND_STEP_ENUM.PICK
         end
+    end
+end
+
+function handleArrowSelection(pKey)
+    if helpers.hasValue({'up','down','right','left'},pKey) then 
+
     end
 end

@@ -61,6 +61,15 @@ function helpers.defineBestAction(board, pile, gap)
     return bestIndex
 end
 
+function helpers.sum(pScoreArray)
+    total = 0
+    for i,v in ipairs(pScoreArray) do
+        total = total + v
+    end
+    
+    return total
+end
+
 function table.clone(org)
     return {unpack(org)} -- use table.unpack when running tests.
 end
