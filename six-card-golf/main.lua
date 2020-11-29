@@ -3,7 +3,7 @@ helpers = require("helpers")
 function love.load()
 
     local MAX_ROUNDS = 9
-    SCALE = 0.5
+    SCALE = 1
     ROUND_STEP_ENUM = {
         BASE=1,
         DRAW=2,
@@ -16,8 +16,20 @@ function love.load()
     SCREEN_WIDTH = 800 
     SCREEN_HEIGHT = 480
 
+    INDEX_COORDS = {
+        {x = 69.5,y = 101},
+        {x = 69.5,y = 234.5},
+        {x = 69.5,y = 368},
+        {x = 167.5,y = 101},
+        {x = 167.5,y = 234.5},
+        {x = 167.5,y = 368},
+        {x = 332.75,y = 265},
+        {x = 458,y = 265},
+        {x = 395,y = 206},
+    }
+
     actionMessage = '...'
-    selected_index = -1
+    selected_index = 7
 
     love.window.setMode(SCREEN_WIDTH * SCALE,SCREEN_HEIGHT * SCALE)
     love.graphics.setFont(love.graphics.newFont(FONT_SIZE * SCALE))
@@ -270,11 +282,13 @@ function love.draw()
     end
 
     -- Hand Selector 
-    handX = 160 * SCALE
-    handY = 350 * SCALE
+
+    handX = INDEX_COORDS[selected_index].x * SCALE
+    handY = INDEX_COORDS[selected_index].y * SCALE
 
     drawFilledImages(images.hand, images.hand_filled, handX, handY, SCALE)
 
+    -- TODO: Popup message 
     drawMessage("Lorem ipsum dolor sit amet, consectetur adipiscing elit")
 
     -- END game logic  
@@ -299,8 +313,6 @@ end
 
 function love.keypressed(key)
 
-    handleArrowSelection(key)
-
     if not gameOver then
 
         if playerTurn then
@@ -323,6 +335,8 @@ function love.keypressed(key)
     else
         handleMenuPlayerInput(key)
     end
+
+    handleArrowSelection(key)
 end
 
 function handleMenuPlayerInput(key)
@@ -482,7 +496,48 @@ function handlePlayerInput(pKey)
 end
 
 function handleArrowSelection(pKey)
-    if helpers.hasValue({'up','down','right','left'},pKey) then 
 
+    -- TODO: Refactor with images middle point coords
+    if helpers.hasValue({'up','down','right','left'},pKey) then 
+        print("Started with ".. selected_index)
+        if selected_index == 1 then
+            selected_index = indexSwitch(pKey, selected_index, 2, 4, selected_index)
+        elseif selected_index == 2 then
+            selected_index = indexSwitch(pKey,1 ,3 ,5 ,selected_index)
+        elseif selected_index == 3 then
+            selected_index = indexSwitch(pKey,2 ,selected_index ,6 ,selected_index)
+        elseif selected_index == 4 then
+            selected_index = indexSwitch(pKey,selected_index ,5 ,7 ,1)
+        elseif selected_index == 5 then
+            selected_index = indexSwitch(pKey,4 ,6 ,7 ,2)
+        elseif selected_index == 6 then
+            selected_index = indexSwitch(pKey,5 ,selected_index ,7 ,3)
+        elseif selected_index == 7 then -- Pile OR drawCard
+            selected_index = indexSwitch(pKey,selected_index ,selected_index ,8 ,5)
+        elseif selected_index == 8 then -- Discard
+            selected_index = indexSwitch(pKey,selected_index ,selected_index ,selected_index ,7)
+        elseif selected_index == 9 then -- Discard
+            selected_index = indexSwitch(pKey,selected_index ,selected_index ,selected_index ,5)
+        end
+        print("Ended with ".. selected_index)
+    end
+
+    if (#drawnCard > 0) then
+        -- 7,8 -> 9
+        if selected_index == 7 or selected_index == 8 then
+            selected_index = 9
+        end
     end
 end
+
+function indexSwitch(pKey, up, down, right, left)
+    if pKey == 'up' then
+        return up
+    elseif pKey == 'down' then
+        return down
+    elseif pKey == 'right' then
+        return right
+    else
+        return left
+    end
+end 
