@@ -13,12 +13,17 @@ function love.load()
     }
     BLACK = {.196,.184,.16,1}
     WHITE = {.694,.682,.659,1}
+    FONT_SIZE = 32
+    SCREEN_WIDTH = 800 
+    SCREEN_HEIGHT = 480
 
-    love.window.setMode(800 * SCALE,480 * SCALE)
+    love.window.setMode(SCREEN_WIDTH * SCALE,SCREEN_HEIGHT * SCALE)
+    love.graphics.setFont(love.graphics.newFont(FONT_SIZE * SCALE))
 
     images = {}
     for i, name in ipairs({
-        'card', 'card_face_down',
+        'card', 'card_face_down','card_filled', 
+        'title', 'title_filled', 'message', 'message_filled'
     }) do 
         images[name] = love.graphics.newImage('images/'..name..'.png')
     end
@@ -75,7 +80,7 @@ function love.load()
         npcBoard = {}
 
         discardPile = {} -- TODO: Need to become the deck once it has been emptied
-        drawCard = {}
+        drawnCard = {}
 
         deck = {}
         for suitIndex, suit in ipairs({'heart', 'spade', 'club', 'diamond'}) do
@@ -147,28 +152,75 @@ function love.draw()
 
     drawPlayer(output, playerBoard, false)
 
-    table.insert( output, 'Holding card: '.. printCard(drawCard[#drawCard]))
+    table.insert( output, 'Holding card: '.. printCard(drawnCard[#drawnCard]))
     table.insert( output, '')
 
     table.insert( output, 'Press T to turn a card, D to draw' ) 
 
     table.insert( output, actionMessage ) 
 
-    love.graphics.print(table.concat( output, '\n' ))
+    --love.graphics.print(table.concat( output, '\n' ))
 
     drawScoreBoard(scoreBoard, playerScore, cpuScore)
 
     -- love.graphics.print(table.concat( scoreBoard, '\n' ),200)
 
     -- Images display
+    love.graphics.setColor(BLACK)
+    love.graphics.rectangle('fill',0,10 * SCALE,SCREEN_WIDTH * SCALE,10 * SCALE)
+    love.graphics.rectangle('fill',0,25 * SCALE,SCREEN_WIDTH * SCALE,10 * SCALE)
+    love.graphics.rectangle('fill',0,(SCREEN_HEIGHT - 30) * SCALE,SCREEN_WIDTH * SCALE,10 * SCALE)
+    love.graphics.rectangle('fill',0,(SCREEN_HEIGHT - 15) * SCALE,SCREEN_WIDTH * SCALE,10 * SCALE)
 
-    local function drawCard(card, x, y)
+    love.graphics.setColor(WHITE)
+    love.graphics.draw(images.title_filled, 252 * SCALE, 0, 0, SCALE, SCALE)
+
+    love.graphics.setColor(BLACK)
+    love.graphics.draw(images.title, 252 * SCALE, 0, 0, SCALE, SCALE)
+
+    local function drawMessage(text)
+        -- TODO: Use getWrap to know if the text is overflowing
+        messageX = 236
+        messageY = SCREEN_HEIGHT - 86
+        love.graphics.setColor(WHITE)    
+        love.graphics.draw(images.message_filled, messageX * SCALE, messageY * SCALE, 0, SCALE, SCALE)
+        love.graphics.setColor(BLACK)
+        love.graphics.draw(images.message, messageX * SCALE, messageY * SCALE, 0, SCALE, SCALE)
+        love.graphics.printf(text,(messageX + 15) * SCALE, (messageY + 10) * SCALE,310 * SCALE, "left")
+    end
+
+    local function drawCard(card, x, y,scale)
+        local scaling = scale or 1
         love.graphics.setColor(BLACK)
 
-        if not card.flipped then
-            love.graphics.draw(images.card_face_down, x,y,0, SCALE,SCALE)
-        else
-            love.graphics.draw(images.card, x,y,0, SCALE,SCALE)
+        if card then
+            love.graphics.setColor(WHITE)
+            love.graphics.draw(images.card_filled, x,y,0,scaling * SCALE,scaling * SCALE)
+
+            love.graphics.setColor(BLACK)
+            if not card.flipped then     
+                love.graphics.draw(images.card_face_down, x,y,0,scaling * SCALE,scaling * SCALE)
+            else
+                love.graphics.draw(images.card, x,y,0,scaling * SCALE,scaling * SCALE)
+            end
+        end
+    end
+
+    local function drawScore(pScore,posX, align, player)
+        local scoreSpacingY = (FONT_SIZE + 4) * SCALE
+        local scoreMarginY = 35 * SCALE
+        
+        love.graphics.setColor(BLACK)
+
+        for i=1,10 do
+            y = (i * scoreSpacingY + scoreMarginY)
+            if (i == 1) then
+                love.graphics.printf(player or "CPU",posX,y,110 * SCALE, align)
+            else
+                playerS = pScore[i-1] or "   "
+                love.graphics.printf(playerS,posX,y,110 * SCALE, align)
+            end
+
         end
     end
 
@@ -177,7 +229,7 @@ function love.draw()
     local marginY = 43.5 * SCALE
 
     for i, card in ipairs(playerBoard) do 
-        local playerMarginX = 29.5 * SCALE 
+        local playerMarginX = 29 * SCALE 
 
         drawCard(
             card,
@@ -186,7 +238,7 @@ function love.draw()
     end
 
     for i, card in ipairs(npcBoard) do 
-        local cpuMarginX = 582.5 * SCALE 
+        local cpuMarginX = 582 * SCALE 
 
         drawCard(
             card,
@@ -194,6 +246,35 @@ function love.draw()
             ((i%3) * cardSpacingY) + marginY)
     end
 
+    -- Score drawing
+    local scoreMarginX = 224
+
+    drawScore(playerScore, scoreMarginX * SCALE, "left", "YOU")
+    drawScore(cpuScore, (scoreMarginX + 242) * SCALE, "right")
+
+    -- Pile, Discard and holding card
+    local middleMarginY = 206 * SCALE
+    drawCard(
+        {flipped = false},
+        296 * SCALE,
+        middleMarginY)
+
+    drawCard(
+        discardPile[#discardPile],
+        417.5 * SCALE,
+        middleMarginY)
+
+    if (drawnCard[#drawnCard]) then
+        print(drawnCard[#drawnCard])
+        print(drawnCard[#drawnCard].flipped)
+        drawCard(
+            drawnCard[#drawnCard],
+            331.66 * SCALE,
+            106 * SCALE,
+            1.61)
+    end
+
+    drawMessage("Lorem ipsum dolor sit amet, consectetur adipiscing elit")
 
     -- END game logic  
     if gameOver then
@@ -271,11 +352,11 @@ function handleCPUTurn()
         ownScore = helpers.getScore(npcBoard)
 
         if (optimalIndex == -1) then -- The discard pile isn't good
-            takeCard(drawCard)
-            potentialIndex = helpers.defineBestAction(npcBoard ,drawCard[#drawCard], 0)
+            takeCard(drawnCard)
+            potentialIndex = helpers.defineBestAction(npcBoard ,drawnCard[#drawnCard], 0)
             indexToFlip = potentialIndex
         else
-            table.insert( drawCard, table.remove(discardPile,#discardPile))
+            table.insert( drawnCard, table.remove(discardPile,#discardPile))
             indexToFlip = optimalIndex
         end
 
@@ -287,12 +368,12 @@ function handleCPUTurn()
                 npcBoard[indexToFlip].flipped = true 
             else
                 -- discard cards
-                table.insert( discardPile , table.remove(drawCard,#drawCard))
+                table.insert( discardPile , table.remove(drawnCard,#drawnCard))
             end
         else
             -- We have something good to flip
             table.insert( discardPile , table.remove(npcBoard,indexToFlip))
-            table.insert( npcBoard, indexToFlip, table.remove(drawCard,#drawCard) )
+            table.insert( npcBoard, indexToFlip, table.remove(drawnCard,#drawnCard) )
             npcBoard[indexToFlip].flipped = true 
         end
 
@@ -300,9 +381,9 @@ function handleCPUTurn()
         if (optimalIndex ~= -1) then
             indexToFlip = optimalIndex
 
-            table.insert( drawCard, table.remove(discardPile,#discardPile))
+            table.insert( drawnCard, table.remove(discardPile,#discardPile))
             table.insert( discardPile , table.remove(npcBoard,indexToFlip))
-            table.insert( npcBoard, indexToFlip, table.remove(drawCard,#drawCard) )
+            table.insert( npcBoard, indexToFlip, table.remove(drawnCard,#drawnCard) )
         else
             indexToFlip = nonFlippedCardsIndexes[love.math.random(#nonFlippedCardsIndexes)]
         end
@@ -359,10 +440,10 @@ function handlePlayerInput(pKey)
             actionMessage = "Press D to discard it or R to replace a card from your board"
 
             if pKey == 'd' then
-                table.insert( drawCard, table.remove(discardPile,#discardPile))
+                table.insert( drawnCard, table.remove(discardPile,#discardPile))
                 round_step = ROUND_STEP_ENUM.HOLD
             elseif pKey == 'p' then
-                takeCard(drawCard)
+                takeCard(drawnCard)
                 round_step = ROUND_STEP_ENUM.HOLD
             end
         end
@@ -370,12 +451,12 @@ function handlePlayerInput(pKey)
         numberKey = tonumber(pKey)
 
         if numberKey ~= nil and helpers.hasValue({1,2,3,4,5,6},numberKey) then
-            if #drawCard > 0 then
+            if #drawnCard > 0 then
                 -- remove card from the table and replace by the one holded
                 actionMessage = "Replacing card on position: ".. numberKey .. " by holded card"
                 table.insert( discardPile , table.remove(playerBoard,numberKey))
                 discardPile[#discardPile].flipped = true
-                table.insert( playerBoard, numberKey, table.remove(drawCard,#drawCard) )
+                table.insert( playerBoard, numberKey, table.remove(drawnCard,#drawnCard) )
                 playerBoard[numberKey].flipped = true
                 playerTurn = false
                 round_step = ROUND_STEP_ENUM.BASE
@@ -395,7 +476,7 @@ function handlePlayerInput(pKey)
 
         if pKey == 'd' then
             actionMessage = "Discarded holded card"
-            table.insert( discardPile , table.remove(drawCard,#drawCard))
+            table.insert( discardPile , table.remove(drawnCard,#drawnCard))
             discardPile[#discardPile].flipped = true
             playerTurn = false
             round_step = ROUND_STEP_ENUM.BASE
