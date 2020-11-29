@@ -192,7 +192,7 @@ function love.draw()
         messageY = (SCREEN_HEIGHT - 86) * SCALE
 
         drawFilledImages(images.message, images.message_filled, messageX, messageY, SCALE)
-        love.graphics.printf(text,(messageX + 15) * SCALE, (messageY + 10) * SCALE,310 * SCALE, "left")
+        love.graphics.printf(text,messageX + (15 * SCALE), messageY + (10 * SCALE), 310 * SCALE, "left")
     end
 
     local function drawCard(card, x, y,scale)
@@ -225,27 +225,23 @@ function love.draw()
         end
     end
 
-    local cardSpacingX = (8 + cardWidth) * SCALE
-    local cardSpacingY = (4 + cardHeight) * SCALE
-    local marginY = 43.5 * SCALE
-
-    for i, card in ipairs(playerBoard) do 
-        local playerMarginX = 29 * SCALE 
-
-        drawCard(
-            card,
-            ((i%2) * cardSpacingX) + playerMarginX,
-            ((i%3) * cardSpacingY) + marginY)
+    local function drawCardBoard(board, marginX)
+        local cardSpacingX = (8 + cardWidth) * SCALE
+        local cardSpacingY = (4 + cardHeight) * SCALE
+        local marginY = 43.5 * SCALE
+        
+        for i, card in ipairs(board) do 
+            local margeX = marginX * SCALE 
+    
+            drawCard(
+                card,
+                (math.floor(i/4) * cardSpacingX) + margeX,
+                (((i-1)%3) * cardSpacingY) + marginY)
+        end
     end
 
-    for i, card in ipairs(npcBoard) do 
-        local cpuMarginX = 582 * SCALE 
-
-        drawCard(
-            card,
-            ((i%2) * cardSpacingX) + cpuMarginX,
-            ((i%3) * cardSpacingY) + marginY)
-    end
+    drawCardBoard(playerBoard, 29 * SCALE)
+    drawCardBoard(npcBoard, 582 * SCALE)
 
     -- Score drawing
     local scoreMarginX = 224
