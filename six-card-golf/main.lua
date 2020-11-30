@@ -30,6 +30,7 @@ function love.load()
 
     actionMessage = '...'
     selected_index = 7
+    final_turn = false
 
     love.window.setMode(SCREEN_WIDTH * SCALE,SCREEN_HEIGHT * SCALE)
     love.graphics.setFont(love.graphics.newFont(FONT_SIZE * SCALE))
@@ -309,15 +310,22 @@ function love.draw()
     drawFilledImages(images.hand, images.hand_filled, handX, handY, SCALE)
 
     -- TODO: Popup message 
-    drawMessage("Lorem ipsum dolor sit amet, consectetur adipiscing elit")
+    messageToDraw = ""
+    scoreText = 'YOU= ' .. helpers.getScore(playerBoard) .. " CPU= " .. helpers.getScore(npcBoard)
+
+    messageToDraw = scoreText
 
     -- END game logic  
     if gameOver then
         -- draw menu with the winner, play again or quit
         totPlayerScore = helpers.sum(playerScore)
         totCpuScore = helpers.sum(cpuScore)
-        love.graphics.print("Total: "..totPlayerScore.. " | ".. totCpuScore,175,160)
+        finalMessage = "Total: "..totPlayerScore.. " | ".. totCpuScore
+        -- love.graphics.print(finalMessage,175,160)
+        messageToDraw = finalMessage
     end
+
+    drawMessage(messageToDraw)
 end
 
 function drawScoreBoard(pOutput, player, cpu) 
@@ -333,10 +341,13 @@ end
 
 function love.keypressed(key)
 
+    handleArrowSelection(key)
+
     if not gameOver then
 
         if playerTurn then
-            handlePlayerInput(key)
+            -- handlePlayerInput(key)
+            handlePlayerArrow(key)
         end
 
         if not (playerTurn or roundOver) then
@@ -344,19 +355,20 @@ function love.keypressed(key)
             handleCPUTurn()
         end
 
-        if roundOver then 
+        if roundOver and not final_turn then 
             roundIsOver()
         end
 
         roundOver = isRoundOver(npcBoard)
         if roundOver then
             actionMessage = "CPU finished, this is your final turn"
+            final_turn = true
         end
     else
         handleMenuPlayerInput(key)
     end
 
-    handleArrowSelection(key)
+    -- handleArrowSelection(key)
 end
 
 function handleMenuPlayerInput(key)
@@ -381,6 +393,7 @@ function handleCPUTurn()
 
         if (optimalIndex == -1) then -- The discard pile isn't good
             takeCard(drawnCard)
+            drawnCard[#drawnCard].flipped = true
             potentialIndex = helpers.defineBestAction(npcBoard ,drawnCard[#drawnCard], 0)
             indexToFlip = potentialIndex
         else
@@ -400,6 +413,7 @@ function handleCPUTurn()
             end
         else
             -- We have something good to flip
+            npcBoard[indexToFlip].flipped = true 
             table.insert( discardPile , table.remove(npcBoard,indexToFlip))
             table.insert( npcBoard, indexToFlip, table.remove(drawnCard,#drawnCard) )
             npcBoard[indexToFlip].flipped = true 
@@ -410,6 +424,7 @@ function handleCPUTurn()
             indexToFlip = optimalIndex
 
             table.insert( drawnCard, table.remove(discardPile,#discardPile))
+            npcBoard[indexToFlip].flipped = true 
             table.insert( discardPile , table.remove(npcBoard,indexToFlip))
             table.insert( npcBoard, indexToFlip, table.remove(drawnCard,#drawnCard) )
         else
@@ -515,11 +530,58 @@ function handlePlayerInput(pKey)
     end
 end
 
+
+function handlePlayerArrow(pKey) 
+    if pKey == 'x' then 
+        if #drawnCard > 0 then 
+            if helpers.hasValue({1,2,3,4,5,6},selected_index) then -- Replacing card on board
+                table.insert( discardPile , table.remove(playerBoard,selected_index))
+                discardPile[#discardPile].flipped = true
+                table.insert( playerBoard, selected_index, table.remove(drawnCard,#drawnCard) )
+                playerBoard[selected_index].flipped = true
+            else -- Discard it
+                table.insert( discardPile , table.remove(drawnCard,#drawnCard))
+            end
+            playerTurn = false
+            final_turn = false
+        else
+            -- flipping card on board
+            if helpers.hasValue({1,2,3,4,5,6},selected_index) then
+                if (playerBoard[selected_index].flipped) then
+                    print("Already flipped")
+                    -- actionMessage = "Already flipped, select another card"
+                else
+                    playerBoard[selected_index].flipped = true
+                    playerTurn = false
+                    final_turn = false
+                end
+
+            else -- Drawing discard or pile
+                if selected_index == 7 then
+                    takeCard(drawnCard)
+                    drawnCard[#drawnCard].flipped = true
+                else
+                    table.insert( drawnCard, table.remove(discardPile,#discardPile))
+                end
+            end
+        end
+
+        if (#drawnCard > 0) then
+            -- 7,8 -> 9
+            if selected_index == 7 or selected_index == 8 then
+                selected_index = 9
+            end
+        elseif selected_index == 9 then
+            selected_index = 7
+        end
+
+    end
+end
+
 function handleArrowSelection(pKey)
 
     -- TODO: Refactor with images middle point coords
     if helpers.hasValue({'up','down','right','left'},pKey) then 
-        print("Started with ".. selected_index)
         if selected_index == 1 then
             selected_index = indexSwitch(pKey, selected_index, 2, 4, selected_index)
         elseif selected_index == 2 then
@@ -539,7 +601,6 @@ function handleArrowSelection(pKey)
         elseif selected_index == 9 then -- Discard
             selected_index = indexSwitch(pKey,selected_index ,selected_index ,selected_index ,5)
         end
-        print("Ended with ".. selected_index)
     end
 
     if (#drawnCard > 0) then
@@ -547,6 +608,8 @@ function handleArrowSelection(pKey)
         if selected_index == 7 or selected_index == 8 then
             selected_index = 9
         end
+    elseif selected_index == 9 then
+        selected_index = 7
     end
 end
 
