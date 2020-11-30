@@ -132,32 +132,43 @@ function love.load()
 
 end
 
-function drawPlayer(pOutput, pBoard, isOpponent)
-    name = "YOU"
-    if isOpponent then
-        name = "OPPONENT"
-    end
-
-    table.insert( pOutput, name)
-    table.insert( pOutput, 'Score: ' .. helpers.getScore(pBoard) )
-    table.insert( pOutput, '')
-    for cardIndex,card in ipairs(pBoard) do
-        if (card.flipped) then
-            table.insert( pOutput, cardIndex.. ' - ' ..printCard(card))
-        else
-            table.insert( pOutput, cardIndex.. ' - ' ..'S: ?, R: ?')
-        end
-
-    end
-    table.insert( pOutput, '' )
-end
-
 function love.draw()
 
     local output = {}
     local scoreBoard = {}
 
     -- Text display
+
+    local function drawScoreBoard(pOutput, player, cpu) 
+        table.insert( pOutput, '  Score')
+        table.insert( pOutput, 'YOU | CPU ')
+        for i=1,9 do
+            playerS = player[i] or "   "
+            cpuS = cpu[i] or "   "
+    
+            table.insert( pOutput, '   '..playerS..' | '..cpuS..' ')
+        end
+    end
+
+    local function drawPlayer(pOutput, pBoard, isOpponent)
+        name = "YOU"
+        if isOpponent then
+            name = "OPPONENT"
+        end
+    
+        table.insert( pOutput, name)
+        table.insert( pOutput, 'Score: ' .. helpers.getScore(pBoard) )
+        table.insert( pOutput, '')
+        for cardIndex,card in ipairs(pBoard) do
+            if (card.flipped) then
+                table.insert( pOutput, cardIndex.. ' - ' ..printCard(card))
+            else
+                table.insert( pOutput, cardIndex.. ' - ' ..'S: ?, R: ?')
+            end
+    
+        end
+        table.insert( pOutput, '' )
+    end
 
     drawPlayer(output, npcBoard, true)
 
@@ -328,17 +339,6 @@ function love.draw()
     drawMessage(messageToDraw)
 end
 
-function drawScoreBoard(pOutput, player, cpu) 
-    table.insert( pOutput, '  Score')
-    table.insert( pOutput, 'YOU | CPU ')
-    for i=1,9 do
-        playerS = player[i] or "   "
-        cpuS = cpu[i] or "   "
-
-        table.insert( pOutput, '   '..playerS..' | '..cpuS..' ')
-    end
-end
-
 function love.keypressed(key)
 
     handleArrowSelection(key)
@@ -351,7 +351,7 @@ function love.keypressed(key)
         end
 
         if not (playerTurn or roundOver) then
-            roundOver = isRoundOver(playerBoard)
+            roundOver = helpers.isRoundOver(playerBoard)
             handleCPUTurn()
         end
 
@@ -359,30 +359,24 @@ function love.keypressed(key)
             roundIsOver()
         end
 
-        roundOver = isRoundOver(npcBoard)
+        roundOver = helpers.isRoundOver(npcBoard)
         if roundOver then
             actionMessage = "CPU finished, this is your final turn"
             final_turn = true
         end
     else
-        handleMenuPlayerInput(key)
-    end
-
-    -- handleArrowSelection(key)
-end
-
-function handleMenuPlayerInput(key)
-    if key == "escape" then
-        love.event.quit()
-    else
-        resetGame()
+        if key == "escape" then
+            love.event.quit()
+        else
+            resetGame()
+        end
     end
 end
 
 function handleCPUTurn() 
 
     -- Gathering information
-    nonFlippedCardsIndexes = nonFlippedCards(npcBoard)  
+    nonFlippedCardsIndexes = helpers.nonFlippedCards(npcBoard)  
     topDiscardPile = discardPile[#discardPile]
     optimalIndex = helpers.defineBestAction(npcBoard ,topDiscardPile, #nonFlippedCardsIndexes) 
 
@@ -435,28 +429,6 @@ function handleCPUTurn()
     end
     
     playerTurn = true
-end
-
-function nonFlippedCards(board) 
-    count = {}
-    for key, card in ipairs(board) do
-        if (not card.flipped) then
-            table.insert( count, key )
-        end
-    end
-
-    return count
-end
-
-function isRoundOver(pBoard) 
-    for i,v in ipairs(pBoard) do
-        if (not v.flipped) then
-            return false
-        end
-    end
-
-    actionMessage = "Final round"
-    return true
 end
 
 function printCard(pCard)
@@ -530,7 +502,6 @@ function handlePlayerInput(pKey)
     end
 end
 
-
 function handlePlayerArrow(pKey) 
     if pKey == 'x' then 
         if #drawnCard > 0 then 
@@ -583,23 +554,23 @@ function handleArrowSelection(pKey)
     -- TODO: Refactor with images middle point coords
     if helpers.hasValue({'up','down','right','left'},pKey) then 
         if selected_index == 1 then
-            selected_index = indexSwitch(pKey, selected_index, 2, 4, selected_index)
+            selected_index = helpers.indexSwitch(pKey, selected_index, 2, 4, selected_index)
         elseif selected_index == 2 then
-            selected_index = indexSwitch(pKey,1 ,3 ,5 ,selected_index)
+            selected_index = helpers.indexSwitch(pKey,1 ,3 ,5 ,selected_index)
         elseif selected_index == 3 then
-            selected_index = indexSwitch(pKey,2 ,selected_index ,6 ,selected_index)
+            selected_index = helpers.indexSwitch(pKey,2 ,selected_index ,6 ,selected_index)
         elseif selected_index == 4 then
-            selected_index = indexSwitch(pKey,selected_index ,5 ,7 ,1)
+            selected_index = helpers.indexSwitch(pKey,selected_index ,5 ,7 ,1)
         elseif selected_index == 5 then
-            selected_index = indexSwitch(pKey,4 ,6 ,7 ,2)
+            selected_index = helpers.indexSwitch(pKey,4 ,6 ,7 ,2)
         elseif selected_index == 6 then
-            selected_index = indexSwitch(pKey,5 ,selected_index ,7 ,3)
+            selected_index = helpers.indexSwitch(pKey,5 ,selected_index ,7 ,3)
         elseif selected_index == 7 then -- Pile OR drawCard
-            selected_index = indexSwitch(pKey,selected_index ,selected_index ,8 ,5)
+            selected_index = helpers.indexSwitch(pKey,selected_index ,selected_index ,8 ,5)
         elseif selected_index == 8 then -- Discard
-            selected_index = indexSwitch(pKey,selected_index ,selected_index ,selected_index ,7)
+            selected_index = helpers.indexSwitch(pKey,selected_index ,selected_index ,selected_index ,7)
         elseif selected_index == 9 then -- Discard
-            selected_index = indexSwitch(pKey,selected_index ,selected_index ,selected_index ,5)
+            selected_index = helpers.indexSwitch(pKey,selected_index ,selected_index ,selected_index ,5)
         end
     end
 
@@ -612,15 +583,3 @@ function handleArrowSelection(pKey)
         selected_index = 7
     end
 end
-
-function indexSwitch(pKey, up, down, right, left)
-    if pKey == 'up' then
-        return up
-    elseif pKey == 'down' then
-        return down
-    elseif pKey == 'right' then
-        return right
-    else
-        return left
-    end
-end 

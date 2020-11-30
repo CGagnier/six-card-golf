@@ -61,6 +61,39 @@ function helpers.defineBestAction(board, pile, gap)
     return bestIndex
 end
 
+function helpers.indexSwitch(pKey, up, down, right, left)
+    if pKey == 'up' then
+        return up
+    elseif pKey == 'down' then
+        return down
+    elseif pKey == 'right' then
+        return right
+    else
+        return left
+    end
+end
+
+function helpers.nonFlippedCards(board) 
+    nfIndexes = {}
+    for key, card in ipairs(board) do
+        if (not card.flipped) then
+            table.insert(nfIndexes, key)
+        end
+    end
+
+    return nfIndexes
+end
+
+function helpers.isRoundOver(pBoard) 
+    for i,v in ipairs(pBoard) do
+        if (not v.flipped) then
+            return false
+        end
+    end
+
+    return true
+end
+
 function helpers.sum(pScoreArray)
     total = 0
     for i,v in ipairs(pScoreArray) do
