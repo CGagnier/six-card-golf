@@ -3,7 +3,7 @@ helpers = require("helpers")
 function love.load()
 
     local MAX_ROUNDS = 9
-    SCALE = 1
+    SCALE = .5
     ROUND_STEP_ENUM = {
         BASE=1,
         DRAW=2,
@@ -134,64 +134,6 @@ end
 
 function love.draw()
 
-    local output = {}
-    local scoreBoard = {}
-
-    -- Text display
-
-    local function drawScoreBoard(pOutput, player, cpu) 
-        table.insert( pOutput, '  Score')
-        table.insert( pOutput, 'YOU | CPU ')
-        for i=1,9 do
-            playerS = player[i] or "   "
-            cpuS = cpu[i] or "   "
-    
-            table.insert( pOutput, '   '..playerS..' | '..cpuS..' ')
-        end
-    end
-
-    local function drawPlayer(pOutput, pBoard, isOpponent)
-        name = "YOU"
-        if isOpponent then
-            name = "OPPONENT"
-        end
-    
-        table.insert( pOutput, name)
-        table.insert( pOutput, 'Score: ' .. helpers.getScore(pBoard) )
-        table.insert( pOutput, '')
-        for cardIndex,card in ipairs(pBoard) do
-            if (card.flipped) then
-                table.insert( pOutput, cardIndex.. ' - ' ..printCard(card))
-            else
-                table.insert( pOutput, cardIndex.. ' - ' ..'S: ?, R: ?')
-            end
-    
-        end
-        table.insert( pOutput, '' )
-    end
-
-    drawPlayer(output, npcBoard, true)
-
-    table.insert( output, 'Discard Pile: '..printCard(discardPile[#discardPile]) )
-    table.insert( output, 'Deck:' )
-    table.insert( output, '' )
-
-    drawPlayer(output, playerBoard, false)
-
-    table.insert( output, 'Holding card: '.. printCard(drawnCard[#drawnCard]))
-    table.insert( output, '')
-
-    table.insert( output, 'Press T to turn a card, D to draw' ) 
-
-    table.insert( output, actionMessage ) 
-
-    --love.graphics.print(table.concat( output, '\n' ))
-
-    drawScoreBoard(scoreBoard, playerScore, cpuScore)
-
-    -- love.graphics.print(table.concat( scoreBoard, '\n' ),200)
-
-    -- Images display
     love.graphics.setColor(BLACK)
     love.graphics.rectangle('fill',0,10 * SCALE,SCREEN_WIDTH * SCALE,10 * SCALE)
     love.graphics.rectangle('fill',0,25 * SCALE,SCREEN_WIDTH * SCALE,10 * SCALE)
@@ -314,7 +256,6 @@ function love.draw()
     end
 
     -- Hand Selector 
-
     handX = INDEX_COORDS[selected_index].x * SCALE
     handY = INDEX_COORDS[selected_index].y * SCALE
 
@@ -332,7 +273,6 @@ function love.draw()
         totPlayerScore = helpers.sum(playerScore)
         totCpuScore = helpers.sum(cpuScore)
         finalMessage = "Total: "..totPlayerScore.. " | ".. totCpuScore
-        -- love.graphics.print(finalMessage,175,160)
         messageToDraw = finalMessage
     end
 
@@ -346,7 +286,6 @@ function love.keypressed(key)
     if not gameOver then
 
         if playerTurn then
-            -- handlePlayerInput(key)
             handlePlayerArrow(key)
         end
 
@@ -429,77 +368,6 @@ function handleCPUTurn()
     end
     
     playerTurn = true
-end
-
-function printCard(pCard)
-    if (pCard ~= nil) then
-        return 'S: '..pCard.suit..', R: '..pCard.rank
-    else
-        return '-'
-    end
-end
-
-function handlePlayerInput(pKey) 
-    if round_step == ROUND_STEP_ENUM.BASE then 
-
-        if pKey == 't' then
-            actionMessage = "Select card using 1 to 6 on your keyboard"
-            round_step = ROUND_STEP_ENUM.PICK
-        elseif pKey == 'd' then
-            actionMessage = "Where do you want to draw a card? D: Discard pile OR P: Pile"
-            round_step = ROUND_STEP_ENUM.DRAW
-        end
-    elseif round_step == ROUND_STEP_ENUM.DRAW then
-
-        if helpers.hasValue({'d','p'},pKey) then 
-            actionMessage = "Press D to discard it or R to replace a card from your board"
-
-            if pKey == 'd' then
-                table.insert( drawnCard, table.remove(discardPile,#discardPile))
-                round_step = ROUND_STEP_ENUM.HOLD
-            elseif pKey == 'p' then
-                takeCard(drawnCard)
-                round_step = ROUND_STEP_ENUM.HOLD
-            end
-        end
-    elseif round_step == ROUND_STEP_ENUM.PICK then
-        numberKey = tonumber(pKey)
-
-        if numberKey ~= nil and helpers.hasValue({1,2,3,4,5,6},numberKey) then
-            if #drawnCard > 0 then
-                -- remove card from the table and replace by the one holded
-                actionMessage = "Replacing card on position: ".. numberKey .. " by holded card"
-                table.insert( discardPile , table.remove(playerBoard,numberKey))
-                discardPile[#discardPile].flipped = true
-                table.insert( playerBoard, numberKey, table.remove(drawnCard,#drawnCard) )
-                playerBoard[numberKey].flipped = true
-                playerTurn = false
-                round_step = ROUND_STEP_ENUM.BASE
-            else -- Selecting a card to flip
-                if (playerBoard[numberKey].flipped) then
-                    actionMessage = "Already flipped, select another card"
-                else
-                    actionMessage = "Flipped card no. "..numberKey
-                    playerBoard[numberKey].flipped = true
-                    playerTurn = false
-                    round_step = ROUND_STEP_ENUM.BASE
-                end
-            end
-        end
-    elseif round_step == ROUND_STEP_ENUM.HOLD then
-        -- Player is "holding" a card and can either discard it, or replace a card from it board
-
-        if pKey == 'd' then
-            actionMessage = "Discarded holded card"
-            table.insert( discardPile , table.remove(drawnCard,#drawnCard))
-            discardPile[#discardPile].flipped = true
-            playerTurn = false
-            round_step = ROUND_STEP_ENUM.BASE
-        elseif pKey == 'r' then
-            actionMessage = "Replace one of your card using 1 to 6 on your keyboard"
-            round_step = ROUND_STEP_ENUM.PICK
-        end
-    end
 end
 
 function handlePlayerArrow(pKey) 
