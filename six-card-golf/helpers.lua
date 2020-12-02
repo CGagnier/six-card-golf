@@ -61,6 +61,8 @@ function helpers.defineBestAction(board, pile, gap)
     return bestIndex
 end
 
+-- Arrow keys helpers
+
 function helpers.indexSwitch(pKey, up, down, right, left)
     if pKey == 'up' then
         return up
@@ -71,6 +73,46 @@ function helpers.indexSwitch(pKey, up, down, right, left)
     else
         return left
     end
+end
+
+function helpers.fixIndex(pDrawnCard, selected_index)
+    if (#pDrawnCard > 0) then
+        if selected_index == 7 or selected_index == 8 then
+            return 9
+        end
+    elseif selected_index == 9 then
+        return 7
+    end
+    return selected_index
+end
+
+function helpers.handleArrowSelection(pKey,sIndex)
+    newIndex = -1
+    -- TODO: Refactor with images middle point coords
+    if helpers.hasValue({'up','down','right','left'},pKey) then 
+        if sIndex == 1 then
+            newIndex = helpers.indexSwitch(pKey, sIndex, 2, 4, sIndex)
+        elseif sIndex == 2 then
+            newIndex = helpers.indexSwitch(pKey,1 ,3 ,5 ,sIndex)
+        elseif sIndex == 3 then
+            newIndex = helpers.indexSwitch(pKey,2 ,sIndex ,6 ,sIndex)
+        elseif sIndex == 4 then
+            newIndex = helpers.indexSwitch(pKey,sIndex ,5 ,7 ,1)
+        elseif sIndex == 5 then
+            newIndex = helpers.indexSwitch(pKey,4 ,6 ,7 ,2)
+        elseif sIndex == 6 then
+            newIndex = helpers.indexSwitch(pKey,5 ,sIndex ,7 ,3)
+        elseif sIndex == 7 then -- Pile OR drawCard
+            newIndex = helpers.indexSwitch(pKey,sIndex ,sIndex ,8 ,5)
+        elseif sIndex == 8 then -- Discard
+            newIndex = helpers.indexSwitch(pKey,sIndex ,sIndex ,sIndex ,7)
+        elseif sIndex == 9 then -- Draw Card
+            newIndex = helpers.indexSwitch(pKey,sIndex ,sIndex ,sIndex ,5)
+        end
+    end
+    newIndex = helpers.fixIndex(drawnCard,newIndex)
+
+    return newIndex
 end
 
 function helpers.nonFlippedCards(board) 

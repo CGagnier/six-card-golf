@@ -2,7 +2,7 @@ helpers = require("helpers")
 
 function love.load()
 
-    local MAX_ROUNDS = 9
+    local MAX_ROUNDS = 2
     SCALE = .5
     ROUND_STEP_ENUM = {
         BASE=1,
@@ -49,8 +49,9 @@ function love.load()
 
     love.graphics.setBackgroundColor(WHITE)
 
-    function takeCard(hand)
+    function takeCard(hand,flipped)
         table.insert( hand, table.remove( deck, love.math.random(#deck) ) )
+        hand[#hand].flipped = flipped or false
     end
 
     function roundIsOver()
@@ -112,8 +113,7 @@ function love.load()
             takeCard(npcBoard)
         end
 
-        takeCard(discardPile)
-        discardPile[#discardPile].flipped = true
+        takeCard(discardPile,true)
 
         actionMessage = '...'
     end
@@ -263,6 +263,8 @@ function love.draw()
 
     -- TODO: Popup message 
     messageToDraw = ""
+
+    -- Temp score display
     scoreText = 'YOU= ' .. helpers.getScore(playerBoard) .. " CPU= " .. helpers.getScore(npcBoard)
 
     messageToDraw = scoreText
@@ -281,7 +283,96 @@ end
 
 function love.keypressed(key)
 
-    handleArrowSelection(key)
+    local function handleCPUTurn() 
+
+        -- Gathering information
+        nonFlippedCardsIndexes = helpers.nonFlippedCards(npcBoard)  
+        topDiscardPile = discardPile[#discardPile]
+        optimalIndex = helpers.defineBestAction(npcBoard ,topDiscardPile, #nonFlippedCardsIndexes) 
+    
+        if (#nonFlippedCardsIndexes <= 1 or roundOver) then
+    
+            -- TODO: If score is much lower than the player, it should end turn
+            if (optimalIndex == -1) then -- The discard pile isn't good
+                takeCard(drawnCard,true)
+                potentialIndex = helpers.defineBestAction(npcBoard ,drawnCard[#drawnCard], 0)
+                indexToFlip = potentialIndex
+            else
+                table.insert( drawnCard, table.remove(discardPile,#discardPile))
+                indexToFlip = optimalIndex
+            end
+    
+            if (indexToFlip == -1) then
+                -- We have nothing good to flip, should discard draw card and end turn
+                if roundOver then 
+                    -- Better flip a card than nothing      
+                    indexToFlip = nonFlippedCardsIndexes[love.math.random(#nonFlippedCardsIndexes)]        
+                    npcBoard[indexToFlip].flipped = true 
+                end
+                table.insert( discardPile , table.remove(drawnCard,#drawnCard))
+            else
+                -- We have something good to flip
+                npcBoard[indexToFlip].flipped = true 
+                table.insert( discardPile , table.remove(npcBoard,indexToFlip))
+                table.insert( npcBoard, indexToFlip, table.remove(drawnCard,#drawnCard) )
+                npcBoard[indexToFlip].flipped = true 
+            end
+    
+        else
+            if (optimalIndex ~= -1) then
+                indexToFlip = optimalIndex
+    
+                table.insert( drawnCard, table.remove(discardPile,#discardPile))
+                npcBoard[indexToFlip].flipped = true 
+                table.insert( discardPile , table.remove(npcBoard,indexToFlip))
+                table.insert( npcBoard, indexToFlip, table.remove(drawnCard,#drawnCard) )
+            else
+                indexToFlip = nonFlippedCardsIndexes[love.math.random(#nonFlippedCardsIndexes)]
+            end
+            npcBoard[indexToFlip].flipped = true
+           
+        end
+        
+        playerTurn = true
+    end
+
+    local function handlePlayerArrow(pKey) 
+        if pKey == 'x' then 
+            if #drawnCard > 0 then 
+                if helpers.hasValue({1,2,3,4,5,6},selected_index) then -- Replacing card on board
+                    table.insert( discardPile , table.remove(playerBoard,selected_index))
+                    discardPile[#discardPile].flipped = true
+                    table.insert( playerBoard, selected_index, table.remove(drawnCard,#drawnCard) )
+                else
+                    table.insert( discardPile , table.remove(drawnCard,#drawnCard))
+                end
+                playerTurn = false
+                final_turn = false
+            else
+                -- flipping card on board
+                if helpers.hasValue({1,2,3,4,5,6},selected_index) then
+                    if (playerBoard[selected_index].flipped) then
+                        -- actionMessage = "Already flipped, select another card"
+                    else
+                        playerBoard[selected_index].flipped = true
+                        playerTurn = false
+                        final_turn = false
+                    end
+    
+                else -- Drawing discard or pile
+                    if selected_index == 7 then
+                        takeCard(drawnCard,true)
+                    else
+                        table.insert( drawnCard, table.remove(discardPile,#discardPile))
+                    end
+                end
+            end
+    
+            selected_index = helpers.fixIndex(drawnCard,selected_index)
+        end
+    end
+
+    selected_index = helpers.handleArrowSelection(key, selected_index)
 
     if not gameOver then
 
@@ -309,145 +400,5 @@ function love.keypressed(key)
         else
             resetGame()
         end
-    end
-end
-
-function handleCPUTurn() 
-
-    -- Gathering information
-    nonFlippedCardsIndexes = helpers.nonFlippedCards(npcBoard)  
-    topDiscardPile = discardPile[#discardPile]
-    optimalIndex = helpers.defineBestAction(npcBoard ,topDiscardPile, #nonFlippedCardsIndexes) 
-
-    if (#nonFlippedCardsIndexes <= 1 or roundOver) then
-
-        opponentScore = helpers.getScore(playerBoard)
-        ownScore = helpers.getScore(npcBoard)
-
-        if (optimalIndex == -1) then -- The discard pile isn't good
-            takeCard(drawnCard)
-            drawnCard[#drawnCard].flipped = true
-            potentialIndex = helpers.defineBestAction(npcBoard ,drawnCard[#drawnCard], 0)
-            indexToFlip = potentialIndex
-        else
-            table.insert( drawnCard, table.remove(discardPile,#discardPile))
-            indexToFlip = optimalIndex
-        end
-
-        if (indexToFlip == -1) then
-            -- We have nothing good to flip, should discard draw card and end turn
-            if roundOver then 
-                -- Better flip a card than nothing      
-                indexToFlip = nonFlippedCardsIndexes[love.math.random(#nonFlippedCardsIndexes)]        
-                npcBoard[indexToFlip].flipped = true 
-            else
-                -- discard cards
-                table.insert( discardPile , table.remove(drawnCard,#drawnCard))
-            end
-        else
-            -- We have something good to flip
-            npcBoard[indexToFlip].flipped = true 
-            table.insert( discardPile , table.remove(npcBoard,indexToFlip))
-            table.insert( npcBoard, indexToFlip, table.remove(drawnCard,#drawnCard) )
-            npcBoard[indexToFlip].flipped = true 
-        end
-
-    else
-        if (optimalIndex ~= -1) then
-            indexToFlip = optimalIndex
-
-            table.insert( drawnCard, table.remove(discardPile,#discardPile))
-            npcBoard[indexToFlip].flipped = true 
-            table.insert( discardPile , table.remove(npcBoard,indexToFlip))
-            table.insert( npcBoard, indexToFlip, table.remove(drawnCard,#drawnCard) )
-        else
-            indexToFlip = nonFlippedCardsIndexes[love.math.random(#nonFlippedCardsIndexes)]
-        end
-        npcBoard[indexToFlip].flipped = true
-       
-    end
-    
-    playerTurn = true
-end
-
-function handlePlayerArrow(pKey) 
-    if pKey == 'x' then 
-        if #drawnCard > 0 then 
-            if helpers.hasValue({1,2,3,4,5,6},selected_index) then -- Replacing card on board
-                table.insert( discardPile , table.remove(playerBoard,selected_index))
-                discardPile[#discardPile].flipped = true
-                table.insert( playerBoard, selected_index, table.remove(drawnCard,#drawnCard) )
-                playerBoard[selected_index].flipped = true
-            else -- Discard it
-                table.insert( discardPile , table.remove(drawnCard,#drawnCard))
-            end
-            playerTurn = false
-            final_turn = false
-        else
-            -- flipping card on board
-            if helpers.hasValue({1,2,3,4,5,6},selected_index) then
-                if (playerBoard[selected_index].flipped) then
-                    print("Already flipped")
-                    -- actionMessage = "Already flipped, select another card"
-                else
-                    playerBoard[selected_index].flipped = true
-                    playerTurn = false
-                    final_turn = false
-                end
-
-            else -- Drawing discard or pile
-                if selected_index == 7 then
-                    takeCard(drawnCard)
-                    drawnCard[#drawnCard].flipped = true
-                else
-                    table.insert( drawnCard, table.remove(discardPile,#discardPile))
-                end
-            end
-        end
-
-        if (#drawnCard > 0) then
-            -- 7,8 -> 9
-            if selected_index == 7 or selected_index == 8 then
-                selected_index = 9
-            end
-        elseif selected_index == 9 then
-            selected_index = 7
-        end
-
-    end
-end
-
-function handleArrowSelection(pKey)
-
-    -- TODO: Refactor with images middle point coords
-    if helpers.hasValue({'up','down','right','left'},pKey) then 
-        if selected_index == 1 then
-            selected_index = helpers.indexSwitch(pKey, selected_index, 2, 4, selected_index)
-        elseif selected_index == 2 then
-            selected_index = helpers.indexSwitch(pKey,1 ,3 ,5 ,selected_index)
-        elseif selected_index == 3 then
-            selected_index = helpers.indexSwitch(pKey,2 ,selected_index ,6 ,selected_index)
-        elseif selected_index == 4 then
-            selected_index = helpers.indexSwitch(pKey,selected_index ,5 ,7 ,1)
-        elseif selected_index == 5 then
-            selected_index = helpers.indexSwitch(pKey,4 ,6 ,7 ,2)
-        elseif selected_index == 6 then
-            selected_index = helpers.indexSwitch(pKey,5 ,selected_index ,7 ,3)
-        elseif selected_index == 7 then -- Pile OR drawCard
-            selected_index = helpers.indexSwitch(pKey,selected_index ,selected_index ,8 ,5)
-        elseif selected_index == 8 then -- Discard
-            selected_index = helpers.indexSwitch(pKey,selected_index ,selected_index ,selected_index ,7)
-        elseif selected_index == 9 then -- Discard
-            selected_index = helpers.indexSwitch(pKey,selected_index ,selected_index ,selected_index ,5)
-        end
-    end
-
-    if (#drawnCard > 0) then
-        -- 7,8 -> 9
-        if selected_index == 7 or selected_index == 8 then
-            selected_index = 9
-        end
-    elseif selected_index == 9 then
-        selected_index = 7
     end
 end
