@@ -75,19 +75,20 @@ function helpers.indexSwitch(pKey, up, down, right, left)
     end
 end
 
-function helpers.fixIndex(pDrawnCard, selected_index)
+function helpers.fixIndex(pDrawnCard, pIndex)
     if (#pDrawnCard > 0) then
-        if selected_index == 7 or selected_index == 8 then
+        if pIndex == 7 or pIndex == 8 then
             return 9
         end
-    elseif selected_index == 9 then
+    elseif pIndex == 9 then
         return 7
     end
-    return selected_index
+    return pIndex
 end
 
 function helpers.handleArrowSelection(pKey,sIndex)
-    newIndex = -1
+    newIndex = sIndex
+    
     -- TODO: Refactor with images middle point coords
     if helpers.hasValue({'up','down','right','left'},pKey) then 
         if sIndex == 1 then
@@ -109,8 +110,9 @@ function helpers.handleArrowSelection(pKey,sIndex)
         elseif sIndex == 9 then -- Draw Card
             newIndex = helpers.indexSwitch(pKey,sIndex ,sIndex ,sIndex ,5)
         end
+
+        newIndex = helpers.fixIndex(drawnCard,newIndex)
     end
-    newIndex = helpers.fixIndex(drawnCard,newIndex)
 
     return newIndex
 end

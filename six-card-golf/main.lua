@@ -2,7 +2,7 @@ helpers = require("helpers")
 
 function love.load()
 
-    local MAX_ROUNDS = 2
+    local MAX_ROUNDS = 9
     SCALE = .5
     ROUND_STEP_ENUM = {
         BASE=1,
@@ -276,6 +276,12 @@ function love.draw()
         totCpuScore = helpers.sum(cpuScore)
         finalMessage = "Total: "..totPlayerScore.. " | ".. totCpuScore
         messageToDraw = finalMessage
+    end
+
+    -- Selected element logic
+    if selected_index == 7 then
+        local cardsLeft = #deck
+        love.graphics.printf(cardsLeft,315 * SCALE, 344 * SCALE,50 * SCALE, "center")
     end
 
     drawMessage(messageToDraw)
