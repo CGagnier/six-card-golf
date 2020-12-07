@@ -32,8 +32,13 @@ function love.load()
     selected_index = 7
     final_turn = false
 
+    currentMessage = {}
+    MESSAGE_WRAP = 310 * SCALE
+
     love.window.setMode(SCREEN_WIDTH * SCALE,SCREEN_HEIGHT * SCALE)
     love.graphics.setFont(love.graphics.newFont(FONT_SIZE * SCALE))
+
+    FONT = love.graphics.getFont()
 
     images = {}
     for i, name in ipairs({
@@ -128,6 +133,25 @@ function love.load()
         resetRound()
     end
 
+    -- Take care of splitting message in displayable chunk on the message
+    function pushTextToMessage(text)
+        local displayText = {}
+        width, wrap = FONT:getWrap(text, MESSAGE_WRAP)
+        while #wrap > 1 do
+            -- TODO: Should add icon to say they have more to read, ... or the key blinking
+            local toInsert = ""
+            toInsert = toInsert.. table.remove(wrap,1)
+            toInsert = toInsert.. table.remove(wrap,1)
+            table.insert(displayText, toInsert)
+        end
+
+        if #wrap > 0 then
+            table.insert(displayText, wrap[1])
+        end
+        
+        currentMessage = displayText
+    end
+
     resetGame()
 
 end
@@ -153,13 +177,16 @@ function love.draw()
         love.graphics.draw(normal, x, y, 0, scale, scale)
     end
 
-    local function drawMessage(text)
-        -- TODO: Use getWrap to know if the text is overflowing
-        messageX = 236 * SCALE
-        messageY = (SCREEN_HEIGHT - 86) * SCALE
+    local function displayMessage(text)
 
-        drawFilledImages(images.message, images.message_filled, messageX, messageY, SCALE)
-        love.graphics.printf(text,messageX + (15 * SCALE), messageY + (10 * SCALE), 310 * SCALE, "left")
+        if #currentMessage > 0 then 
+
+            messageX = 236 * SCALE
+            messageY = (SCREEN_HEIGHT - 86) * SCALE
+    
+            drawFilledImages(images.message, images.message_filled, messageX, messageY, SCALE)
+            love.graphics.printf(currentMessage[1],messageX + (15 * SCALE), messageY + (10 * SCALE), MESSAGE_WRAP, "left")
+        end
     end
 
     local function drawCard(card, x, y,scale)
@@ -284,7 +311,7 @@ function love.draw()
         love.graphics.printf(cardsLeft,315 * SCALE, 344 * SCALE,50 * SCALE, "center")
     end
 
-    drawMessage(messageToDraw)
+    displayMessage()
 end
 
 function love.keypressed(key)
@@ -368,6 +395,7 @@ function love.keypressed(key)
                 else -- Drawing discard or pile
                     if selected_index == 7 then
                         takeCard(drawnCard,true)
+                        pushTextToMessage("Select a card to be replaced by this card, or discard it by clicking it.")
                     else
                         table.insert( drawnCard, table.remove(discardPile,#discardPile))
                     end
@@ -378,9 +406,19 @@ function love.keypressed(key)
         end
     end
 
+    local function handleMessageBox(pKey)
+        if pKey == 'z' then
+            if #currentMessage > 0 then 
+                table.remove( currentMessage,1 )
+            end
+        end
+    end
+
     selected_index = helpers.handleArrowSelection(key, selected_index)
 
     if not gameOver then
+
+        handleMessageBox(key)
 
         if playerTurn then
             handlePlayerArrow(key)
