@@ -42,7 +42,7 @@ function love.load()
     images = {}
     for i, name in ipairs({
         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
-        'card', 'card_face_down','card_filled', 
+        'card', 'card_face_down','card_filled', 'deck_empty',
         'title', 'title_filled', 'message', 'message_filled', "hand", "hand_filled"
     }) do 
         images[name] = love.graphics.newImage('images/'..name..'.png')
@@ -54,6 +54,12 @@ function love.load()
     love.graphics.setBackgroundColor(WHITE)
 
     function takeCard(hand,flipped)
+        if (#deck<1) then
+            -- TODO: Add animation
+            deck = discardPile
+            discardPile = {}
+        end
+
         table.insert( hand, table.remove( deck, love.math.random(#deck) ) )
         hand[#hand].flipped = flipped or false
     end
@@ -263,10 +269,17 @@ function love.draw()
 
     -- Pile, Discard and holding card
     local middleMarginY = 206 * SCALE
-    drawCard(
-        {flipped = false},
-        296 * SCALE,
-        middleMarginY)
+    local deckPosX = 296 * SCALE
+
+    if #deck > 0 then
+        drawCard(
+            {flipped = false},
+            deckPosX,
+            middleMarginY)
+    else
+        love.graphics.setColor(BLACK)    
+        love.graphics.draw(images.deck_empty, deckPosX, middleMarginY, 0, SCALE, SCALE)
+    end
 
     drawCard(
         discardPile[#discardPile],
