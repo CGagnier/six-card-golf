@@ -28,7 +28,6 @@ function love.load()
         {x = 395,y = 206},
     }
 
-    actionMessage = '...'
     selected_index = 7
     final_turn = false
 
@@ -72,20 +71,22 @@ function love.load()
 
         if (currentRound >= MAX_ROUNDS) then
             gameOver = true
+            local endMessage
 
             totPlayerScore = helpers.sum(playerScore)
             totCpuScore = helpers.sum(cpuScore)
 
             if totPlayerScore < totCpuScore then
-                actionMessage = "You won!"
+                endMessage = "You won!"
             elseif totPlayerScore > totCpuScore then
-                actionMessage = "CPU won!"
+                endMessage = "CPU won!"
             else
-                actionMessage = "It's a tie!"
+                endMessage = "It's a tie!"
             end
 
-            actionMessage = actionMessage .. " Press escape to quit or any key to start again"
+            endMessage = endMessage .. " Press escape to quit or any key to start again"
 
+            pushTextToMessage(endMessage)
         else
             resetRound()
         end
@@ -119,8 +120,6 @@ function love.load()
         end
 
         takeCard(discardPile,true)
-
-        actionMessage = '...'
     end
 
     function resetGame()
@@ -288,23 +287,6 @@ function love.draw()
 
     drawFilledImages(images.hand, images.hand_filled, handX, handY, SCALE)
 
-    -- TODO: Popup message 
-    messageToDraw = ""
-
-    -- Temp score display
-    scoreText = 'YOU= ' .. helpers.getScore(playerBoard) .. " CPU= " .. helpers.getScore(npcBoard)
-
-    messageToDraw = scoreText
-
-    -- END game logic  
-    if gameOver then
-        -- draw menu with the winner, play again or quit
-        totPlayerScore = helpers.sum(playerScore)
-        totCpuScore = helpers.sum(cpuScore)
-        finalMessage = "Total: "..totPlayerScore.. " | ".. totCpuScore
-        messageToDraw = finalMessage
-    end
-
     -- Selected element logic
     if selected_index == 7 then
         local cardsLeft = #deck
@@ -369,7 +351,7 @@ function love.keypressed(key)
         playerTurn = true
     end
 
-    local function handlePlayerArrow(pKey) 
+    local function handlePlayerAction(pKey) 
         if pKey == 'x' then 
             if #drawnCard > 0 then 
                 if helpers.hasValue({1,2,3,4,5,6},selected_index) then -- Replacing card on board
@@ -385,7 +367,7 @@ function love.keypressed(key)
                 -- flipping card on board
                 if helpers.hasValue({1,2,3,4,5,6},selected_index) then
                     if (playerBoard[selected_index].flipped) then
-                        -- actionMessage = "Already flipped, select another card"
+                        pushTextToMessage("Already flipped, pick another card.")
                     else
                         playerBoard[selected_index].flipped = true
                         playerTurn = false
@@ -395,10 +377,10 @@ function love.keypressed(key)
                 else -- Drawing discard or pile
                     if selected_index == 7 then
                         takeCard(drawnCard,true)
-                        pushTextToMessage("Select a card to be replaced by this card, or discard it by clicking it.")
                     else
                         table.insert( drawnCard, table.remove(discardPile,#discardPile))
                     end
+                    pushTextToMessage("Select a card to be replaced by this card, or discard it by clicking it.")
                 end
             end
     
@@ -414,14 +396,13 @@ function love.keypressed(key)
         end
     end
 
-    selected_index = helpers.handleArrowSelection(key, selected_index)
+    handleMessageBox(key)
 
     if not gameOver then
-
-        handleMessageBox(key)
+        selected_index = helpers.handleArrowSelection(key, selected_index)
 
         if playerTurn then
-            handlePlayerArrow(key)
+            handlePlayerAction(key)
         end
 
         if not (playerTurn or roundOver) then
@@ -435,13 +416,15 @@ function love.keypressed(key)
 
         roundOver = helpers.isRoundOver(npcBoard)
         if roundOver then
-            actionMessage = "CPU finished, this is your final turn"
+            if not final_turn then
+                pushTextToMessage("CPU finished, this is your final turn")
+            end
             final_turn = true
         end
     else
         if key == "escape" then
             love.event.quit()
-        else
+        elseif key == "x" then
             resetGame()
         end
     end
