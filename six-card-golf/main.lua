@@ -70,6 +70,8 @@ function love.load()
             npcBoard[i].flipped = true 
         end
 
+        -- TODO: sleep here to give player time to see what happened
+
         currentRound = currentRound + 1
 
         table.insert( playerScore, helpers.getScore(playerBoard) )
@@ -90,7 +92,7 @@ function love.load()
                 endMessage = "It's a tie!"
             end
 
-            endMessage = endMessage .. " Press escape to quit or any key to start again"
+            endMessage = endMessage .. " Press escape to quit or 'x' to start again"
 
             pushTextToMessage(endMessage)
         else
@@ -107,7 +109,7 @@ function love.load()
         playerBoard = {} 
         npcBoard = {}
 
-        discardPile = {} -- TODO: Need to become the deck once it has been emptied
+        discardPile = {}
         drawnCard = {}
 
         deck = {}
@@ -157,6 +159,10 @@ function love.load()
         currentMessage = displayText
     end
 
+    function resetMessage()
+        currentMessage = {}
+    end
+
     resetGame()
 
 end
@@ -196,31 +202,30 @@ function love.draw()
 
     local function drawCard(card, x, y,scale)
 
-        local function drawCorner(image, offsetX, offsetY)
+        local scaling = scale or 1
+
+        local function drawCorner(image, offset)
             love.graphics.draw(
                 image,
-                x + offsetX,
-                y + offsetY,
+                x + offset,
+                y + offset,
                 0,
-                SCALE,
-                SCALE
+                SCALE * scaling
             )
             love.graphics.draw(
                 image, 
-                x + (cardWidth * SCALE) - offsetX,
-                y + (cardHeight * SCALE) - offsetY,
+                x + (cardWidth * SCALE * scaling) - offset,
+                y + (cardHeight * SCALE * scaling) - offset,
                 0,
-                -1 * SCALE)
+                -1 * SCALE * scaling)
         end
-
-        local scaling = scale or 1
 
         if card then
             if not card.flipped then  
                 drawFilledImages(images.card_face_down, images.card_filled, x, y, scaling * SCALE)   
             else
                 drawFilledImages(images.card, images.card_filled, x, y, scaling * SCALE)
-                drawCorner(images[card.rank],8 * SCALE ,8 * SCALE)
+                drawCorner(images[card.rank], 8 * SCALE)
             end
         end
     end
@@ -312,7 +317,7 @@ end
 function love.keypressed(key)
 
     local function handleCPUTurn() 
-
+        -- TODO: Add sleep between each step
         -- Gathering information
         nonFlippedCardsIndexes = helpers.nonFlippedCards(npcBoard)  
         topDiscardPile = discardPile[#discardPile]
@@ -365,7 +370,10 @@ function love.keypressed(key)
     end
 
     local function handlePlayerAction(pKey) 
-        if pKey == 'x' then 
+        if pKey == 'x' then
+
+            resetMessage()
+
             if #drawnCard > 0 then 
                 if helpers.hasValue({1,2,3,4,5,6},selected_index) then -- Replacing card on board
                     table.insert( discardPile , table.remove(playerBoard,selected_index))
@@ -429,7 +437,7 @@ function love.keypressed(key)
 
         roundOver = helpers.isRoundOver(npcBoard)
         if roundOver then
-            if not final_turn then
+            if not final_turn and not helpers.isRoundOver(playerBoard) then
                 pushTextToMessage("CPU finished, this is your final turn")
             end
             final_turn = true
